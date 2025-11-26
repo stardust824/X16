@@ -2,7 +2,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include "bits.h"
-#include <math.h>
+#include <stdio.h>
 
 
 
@@ -13,17 +13,17 @@ uint16_t getbit(uint16_t number, int n) {
     return bit;
 }
 
-// Get bits that are the given number of bits wide
+// Get bits at location n that are the given number of bits wide
 uint16_t getbits(uint16_t number, int n, int wide) {
     uint16_t mask = 0;
     // for loop to make bit mask
     for (int i = 0; i < wide; i++) {
-       // mask += 10^i 
-       mask += round(pow((float) 10.0, (float) i));
+        // fill with 1s
+       mask = (mask << 1) + 1;
     }
     // have correct mask now
     // grab bits and shift them
-    return ((number & mask) >> n);
+    return (mask & (number >> n));
 }
 
 // Set the nth bit to the given bit value and return the result
