@@ -50,10 +50,10 @@ uint16_t clearbit(uint16_t number, int n) {
 // Sign extend a number of the given bits to 16 bits
 uint16_t sign_extend(uint16_t x, int bit_count) {
     // if 1, can do a for loop like earlier
-    if (getbit(x, (bit_count -1) == 1)) {
+    if (getbit(x, (bit_count -1)) == 1) {
         // set them
         for (int i = bit_count; i < 16; i++) {
-            setbit(x, i);
+            x = setbit(x, i);
         }
     } else {
         // clear them
