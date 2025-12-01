@@ -57,7 +57,7 @@ uint16_t sign_extend(uint16_t x, int bit_count) {
         }
     } else {
         // clear them
-        for (int i = 0; i < 16; i++) {
+        for (int i = bit_count; i < 16; i++) {
             clearbit(x, i);
         }
     }
