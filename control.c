@@ -38,7 +38,7 @@ int execute_instruction(x16_t* machine) {
 
     // Variables we might need in various instructions
     reg_t dst, src1, src2, base;
-    uint16_t result, indirect, offset, imm, cond, jsrflag, op1, op2, n, p, z;
+    uint16_t result, indirect, offset, imm, cond, jsrflag, op1, op2, op3, n, p, z;
 
     // Decode the instruction
     uint16_t opcode = getopcode(instruction);
@@ -167,18 +167,64 @@ int execute_instruction(x16_t* machine) {
             break;
 
         case OP_LDR:
+            offset = sign_extend(getbits(instruction, 0, 6), 6);
+            dst = getbits(instruction, 9, 3);
+            src1 = getbits(instruction, 6, 3);
+            // get value of the base register
+            op1 = x16_reg(machine, src1);
+            // get from memory at the right address
+            result = x16_memread(machine, (op1 + offset));
+            x16_set(machine, dst, result);
+            update_cond(machine, dst);
             break;
 
         case OP_LEA:
+            offset = sign_extend(getbits(instruction, 0, 9), 9);
+            dst = getbits(instruction, 9, 3);
+            // pc
+            op1 = x16_pc(machine);
+            x16_set(machine, dst, (op1 + offset));
+            update_cond(machine, dst);
             break;
 
         case OP_ST:
+            offset = sign_extend(getbits(instruction, 0, 9), 9);
+            src1 = getbits(instruction, 9, 3);
+            // contents of stored register
+            op1 = x16_reg(machine, src1);
+            // get pc
+            op2 = x16_pc(machine);
+            // put into memory
+            x16_memwrite(machine, (op2 + offset), op1);
+            // don't need to update R_COND
             break;
 
         case OP_STI:
+            // FIXME I"m broken adn fail tests
+            offset = sign_extend(getbits(instruction, 0, 9), 9);
+            src1 = getbits(instruction, 9, 3);
+            // contents of stored register
+            op1 = x16_reg(machine, src1);
+            // get pc
+            op2 = x16_pc(machine);
+            // read the memory
+            op3 = x16_memread(machine, (pc + offset));
+            // put stored value into memory array
+            // I think this works
+            x16_memwrite(machine, op3, op1);
+            // don't need to update R_COND
             break;
 
         case OP_STR:
+            // FIXME I'm also broken
+            offset = sign_extend(getbits(instruction, 0, 6), 6);
+            base = getbits(instruction, 6, 3);
+            // value of base
+            op2 = x16_reg(machine, base);
+            src1 = getbits(instruction, 9, 0);
+            // value of stored register
+            op1 = x16_reg(machine, src1);
+            x16_memwrite(machine, (op2 + offset), op1);
             break;
 
         case OP_TRAP:
