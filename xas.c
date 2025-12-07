@@ -49,15 +49,15 @@ int main(int argc, char** argv) {
     }
     // while not end of file
     while (fgets(line, 1000, input_file) != NULL) {
+        printf("Line: %d Getting rid of newline\n", line_num);
         // get rid of newline
         line[strlen(line) -1] = '\0';
-        // not a comment
-        if (line[0] != '#') {
-            // not a trap. Check trap will handle all traps
-            if (check_trap(line, output_file, line_num) == 0) {
-                // it's an instruction
-                handle_instruction(line, output_file, line_num);
-            }
+        // not a trap. Check trap will handle all traps
+        printf("Line: %d. Checking trap.\n", line_num);
+        if (check_trap(line, output_file, line_num) == 0) {
+            // it's an instruction
+            printf("Line: %d. Handling instruction\n", line_num);
+            handle_instruction(line, output_file, line_num);
         }
         line_num ++;
     }
@@ -66,10 +66,20 @@ int main(int argc, char** argv) {
 
 // checks if there are traps and handles them.
 // Returns 0 if there are no traps, 1 otherwise
+// TODO test to make sure it works with indents
 int check_trap(char* line, FILE* output_file, int line_num) {
     // fwrite emit file
     int instruction;
     short encoded;
+    int length = strlen(line);
+    // handles spaces
+    for (int i = 0; i < length; i++) {
+        if (line[0] == ' ') {
+            line++;
+        } else {
+            break;
+        }
+    }
     if (strcmp(line, "putc") == 0) {
         instruction = TRAP_OUT;
     } else if(strcmp(line, "getc") == 0) {
@@ -102,12 +112,21 @@ void handle_instruction(char* line, FILE* output_file, int line_num) {
     char * cur = strtok(line, " ");
     int dst, src1, src2, imm, on, z, p, n, base, offset, trap, val;
     short encoding;
-    // check if add, and, etc
-    if (strcmp(cur, "add") == 0) {
+    printf("In handle instruction\n");
+    // check if comment
+    if (cur[0] == '#') {
+        printf("Comment\n");
+        return;
+    } else if (strcmp(cur, "add") == 0) {
+        printf("In add\n");
+        printf("%s\n", line);
         dst = handle_register(strtok(NULL, " "), line_num);
+        printf("Got destination\n");
         src1 = handle_register(strtok(NULL, " "), line_num);
+        printf("Got src1\n");
         cur = strtok(NULL, " ");
         // add with 2 registers
+        printf("Checking which add to emit\n");
         if (cur[0] == '%') {
             src2 = handle_register(cur, line_num);
             encoding = htons(emit_add_reg(dst, src1, src2));
@@ -192,9 +211,10 @@ void handle_instruction(char* line, FILE* output_file, int line_num) {
         encoding = htons(emit_value(val));
 
     } else {
-        fprintf(stderr, "Line: %d. Unknown instruction\n", line_num);
+        fprintf(stderr, "Line: %d. Unknown instruction:%s \n", line_num, cur);
         exit(2);
     }
+    printf("writing to output\n");
     // write to output
     if (fwrite(&encoding, sizeof(encoding), 1, output_file) != 1) {
         fprintf(stderr, "Line: %d. Problem writing to output file\n", line_num);
@@ -207,6 +227,7 @@ void handle_instruction(char* line, FILE* output_file, int line_num) {
 
 // returns register number, else exits
 int handle_register(char* reg, int line_num) {
+    printf("in handle register\n");
     printf("%s\n", reg);
     // handle comma
     if (reg[strlen(reg) -1] == ',') {
