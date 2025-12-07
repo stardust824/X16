@@ -7,6 +7,7 @@
 #include "instruction.h"
 #include <limits.h>
 
+// NOTE: This program cannot handle numbers written in hex
 // TODO: remember to return 0, handle val command, handle comments
 
 // helper function declarations
@@ -99,7 +100,7 @@ int check_trap(char* line, FILE* output_file, int line_num) {
 void handle_instruction(char* line, FILE* output_file, int line_num) {
     // Remember: next time you use strtok, call the string with NUll but keep the comma
     char * cur = strtok(line, " ");
-    int dst, src1, src2, imm, on, z, p, n, base, offset, trap;
+    int dst, src1, src2, imm, on, z, p, n, base, offset, trap, val;
     short encoding;
     // check if add, and, etc
     if (strcmp(cur, "add") == 0) {
@@ -121,24 +122,49 @@ void handle_instruction(char* line, FILE* output_file, int line_num) {
         }
 
     } else if (strcmp(cur, "and") == 0) {
-
+        dst = handle_register(strtok(NULL, " "), line_num);
+        src1 = handle_register(strtok(NULL, " "), line_num);
+        cur = strtok(NULL, " ");
+        // a d with 2 registers
+        if (cur[0] == '%') {
+            src2 = handle_register(cur, line_num);
+            encoding = htons(emit_and_reg(dst, src1, src2));
+        } else {
+            // and with immediate value
+            imm = handle_value(cur, 5, line_num);
+            encoding = htons(emit_and_imm(dst, src1, imm));
+        }
     } else if (strcmp(cur, "not") == 0) {
-
+        dst = handle_register(strtok(NULL, " "), line_num);
+        src1 = handle_register(strtok(NULL, " "), line_num);
+        encoding = htons(emit_not(dst, src1));
     } else if (strcmp(cur, "br") == 0) {
+        // TODO DO AFTER LABELS
 
     } else if (strcmp(cur, "jmp") == 0) {
+        base = handle_register(strtok(NULL, " "), line_num);
+        encoding = htons(emit_jmp(base));
 
     } else if (strcmp(cur, "jsr") == 0) {
+        // TODO after labels
 
     } else if (strcmp(cur, "jsrr") == 0) {
-
+        base = handle_register(strtok(NULL, " "), line_num);
+        encoding = htons(emit_jsrr(base));
     } else if (strcmp(cur, "ld") == 0) {
-
+        dst = handle_register(strtok(NULL, " "), line_num);
+        offset = handle_value(strtok(NULL, " "), 9, line_num);
+        encoding = htons(emit_ld(dst, offset));
     } else if (strcmp(cur, "ldi") == 0) {
+        // TODO after labels
 
     } else if (strcmp(cur, "ldr") == 0) {
-
+        dst = handle_register(strtok(NULL, " "), line_num);
+        src1 = handle_register(strtok(NULL, " "), line_num);
+        offset = handle_value(strtok(NULL, " "), 6, line_num);
+        encoding = htons(emit_ldr(dst, src1, offset));
     } else if (strcmp(cur, "lea") == 0) {
+        // TODO after labels
 
     } else if (strcmp(cur, "ret") == 0) {
         fprintf(stderr, "Instruction ret is not used in X16\n");
@@ -147,17 +173,39 @@ void handle_instruction(char* line, FILE* output_file, int line_num) {
         fprintf(stderr, "Instruction rti is not used in X16\n");
         exit(2);
     } else if (strcmp(cur, "st") == 0) {
+        // TODO after labels
 
     } else if (strcmp(cur, "sti") == 0) {
+        // TODO after labels
 
     } else if (strcmp(cur, "str") == 0) {
-
+        src1 = handle_register(strtok(NULL, " "), line_num);
+        base = handle_register(strtok(NULL, " "), line_num);
+        offset = handle_value(strtok(NULL, " "), 6, line_num);
+        encoding = htons(emit_str(src1, base, offset));
     } else if (strcmp(cur, "trap") == 0) {
+        trap = handle_value(strtok(NULL, " "), 8, line_num);
+        if (trap != TRAP_GETC && trap != TRAP_OUT && trap != TRAP_PUTS &&
+                trap != TRAP_IN && trap != TRAP_PUTSP && trap != TRAP_HALT) {
+            fprintf(stderr, "Line: %d. Not a valid trap value\n", line_num);
+        }
+        encoding = htons(emit_trap(trap));
+    } else if (strcmp(cur, "val") == 0) {
+        // NOTE: val works but xod doesn't understand it and reads it as branch.
+        // this is normal, as per the handout
+        val = handle_value(strtok(NULL, " "), 16, line_num);
+        encoding = htons(emit_value(val));
 
     } else {
         fprintf(stderr, "Line: %d. Unknown instruction\n", line_num);
         exit(2);
     }
+    // write to output
+    if (fwrite(&encoding, sizeof(encoding), 1, output_file) != 1) {
+        fprintf(stderr, "Line: %d. Problem writing to output file\n", line_num);
+        exit(2);
+    }
+
     // TODO Figure out if do anything else
     // TODO CHECK IF THERE ARE MORE THINGS ON THE LINE. IF COMMENT, OKAY. OTHERIWSE, ERROR
 }
