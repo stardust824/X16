@@ -114,12 +114,7 @@ void handle_instruction(char* line, FILE* output_file, int line_num) {
         } else {
             imm = handle_value(cur, 5, line_num);
             encoding = htons(emit_add_imm(dst, src1, imm));
-        }
-        // write to output
-        if (fwrite(&encoding, sizeof(encoding), 1, output_file) != 1) {
-            fprintf(stderr, "Line: %d. Problem writing to output file\n", line_num);
-            exit(2);
-        }
+        } 
 
     } else if (strcmp(cur, "and") == 0) {
         dst = handle_register(strtok(NULL, " "), line_num);
