@@ -61,6 +61,8 @@ int main(int argc, char** argv) {
         }
         line_num ++;
     }
+    fclose(input_file);
+    fclose(output_file);
     return 0;
 }
 
