@@ -7,15 +7,20 @@
 #include "instruction.h"
 #include <limits.h>
 
-// NOTE: This program cannot handle numbers written in hex. 
-// Maximum labels: 200
-// TODO: remember to return 0, FREE LABELS!!!
+// NOTE: This program cannot handle comments that occur 
+// directly after instructions with no spaces
+// however, it's bad practice to do that anyway
+// The program can only handle base 10 numbers
+
+// TODO: emit functions
 #define MAX_LABELS 200
+#define MAX_LABEL_LENGTH 200
 
 // struct def
 typedef struct label {
     char* name;
     int location;
+    char* ptr;
 } label_t;
 
 // helper function declarations
@@ -23,8 +28,9 @@ int check_trap (char* line, FILE* output_file, int line_num, int write);
 int handle_instruction(char* line, FILE* output_file, int line_num, int write);
 int handle_value(char* value, int bits, int line_num);
 int handle_register(char* reg, int line_num);
-int make_label(char* instruction, label_t* lables, int machine_index, int line_num, int make);
+int make_label(char* instruction, label_t* lables, int machine_index, int line_num);
 int get_offset(char* label_name, label_t* labels, int machine_index, int line_num);
+int is_label(char* label_name, int line_num);
 
 
 void usage() {
@@ -64,38 +70,54 @@ int main(int argc, char** argv) {
     // make list of labels
     label_t *labels = calloc(sizeof(label_t), MAX_LABELS);
     
-    // TODO: While loop to read file and scan for labels
-    while (fgets(line, 1000, input_file) != NULL) {
-
-    }
-
+    
     // while not end of file
     for (int i = 0; i < 2; i++) {
         machine_index = 0;
         int label = -1;
+        line_num = 1;
         while (fgets(line, 1000, input_file) != NULL) {
-            printf("Line: %d Getting rid of newline\n", line_num);
             // get rid of newline
             line[strlen(line) -1] = '\0';
-            // check if label
+            printf("Line is: %s\n", line);
+            // FIRST PASS
             if (i == 0) {
-                // only want it to make a label on the first pass
-                label = make_label(line, labels, machine_index, line_num, i);
+                printf("First pass. Calling make label\n");
+                label = make_label(line, labels, machine_index, line_num);
+                // ":" Do NOT increment machine index
+                // All whitespace =  do NOT increment machine index
+                // Only a comment = do NOT increment machine index
+                char* cur = strtok(line, " ");
+                printf("Grabbed string. Checking if increment machine index\n"); 
+                if (cur != NULL && cur[0] != '#' && label != 1) {
+                    // it's a trap or instruction
+                    machine_index++;
+                }
+                printf("Pass 1. Machine index: %d\n", machine_index);
+                // SECOND PASS
                 // check if trap
             } else if (check_trap(line, output_file, line_num, i) == 0) {
-                // it's an instruction
-                printf("Line: %d. Handling instruction\n", line_num);
-                // increment machine index, if needed
-                machine_index += handle_instruction(line, output_file, line_num, i);
+                printf("Not a trap\n");
+                // if not a label
+                if (is_label(line, line_num) != 1) {
+                    printf("Line: %d. Handling instruction\n", line_num);
+                    printf("Calling handle instruction with: %s\n", line);
+                    // increment machine index, if needed
+                    machine_index += handle_instruction(line, output_file, line_num, i);
+                    printf("Pass 2. Machine index: %d\n", machine_index);
+
+                }
             } else {
                 // it's a trap
                 machine_index++;
+                printf("Pass 2. Machine index: %d\n", machine_index);
             }
             line_num ++;
         }
         // fseek to beginning
-        fseek(input_file, 0, SEEK_SET); 
+        fseek(input_file, 0, SEEK_SET);
     }
+    // TODO free all the malloced strings inside labels
     free(labels);
     fclose(input_file);
     fclose(output_file);
@@ -105,6 +127,8 @@ int main(int argc, char** argv) {
 // checks if there are traps and handles them.
 // Returns 0 if there are no traps, 1 otherwise
 int check_trap(char* line, FILE* output_file, int line_num, int write) {
+    printf("in check trap\n");
+    printf("Line is %s\n", line);
     // fwrite emit file
     int instruction;
     short encoded;
@@ -112,7 +136,12 @@ int check_trap(char* line, FILE* output_file, int line_num, int write) {
     char copy[1000];
     strcpy(copy, line);
     // should handle spaces and comments
-    line = strtok(line, " ");
+    line = strtok(copy, " ");
+    if (line == NULL) {
+        // whitespace
+        return 0;
+    }
+    printf("Lineis %s\n", line);
     // handles spaces
     //for (int i = 0; i < length; i++) {
         //if (line[0] == ' ') {
@@ -166,12 +195,9 @@ int handle_instruction(char* line, FILE* output_file, int line_num, int write) {
         printf("Comment\n");
         return 0;
     } else if (strcmp(cur, "add") == 0) {
-        printf("In add\n");
         printf("%s\n", line);
         dst = handle_register(strtok(NULL, " "), line_num);
-        printf("Got destination\n");
         src1 = handle_register(strtok(NULL, " "), line_num);
-        printf("Got src1\n");
         cur = strtok(NULL, " ");
         if (cur == NULL) {
             fprintf(stderr, "Line: %d. Bad argument input. NULL. \n", line_num);
@@ -356,20 +382,29 @@ int handle_value(char* value, int bits, int line_num) {
 // if instruction is NOT a label, returns 0
 // if it is a label,returns 1 and the label is put into 
 // an array of structs that store the label and the offset
-int make_label(char* instruction, label_t* labels, int machine_index, int line_num, int make) {
-    if (instruction[strlen(instruction) -1] != ':') {
+int make_label(char* instruction, label_t* labels, int machine_index, int line_num) {
+    char* copy = malloc(MAX_LABEL_LENGTH);
+    char* pointer = copy;
+    strcpy(copy, instruction);
+    copy = strtok(copy, " ");
+    // whitespace
+    if (copy == NULL) {
+        free(pointer);
+        return 0; 
+    }
+    if (copy[strlen(copy) -1] != ':') {
         // not a label
+        free(pointer);
         return 0;
     }
-    // get rid of the ':'
-    instruction[strlen(instruction) -1] = '\0';
-    // deals with whitespace
-    instruction = strtok(instruction, " ");
-    if (instruction == NULL) {
-        fprintf(stderr, "Line: %d. Invalid label name\n", line_num);
-        exit(2);
+
+    if (copy[0] == '#') {
+        // it's a comment. Not a label
+        return 0;
     }
-    // check if spaces in label name
+    // gets rid of the ':"
+    copy[strlen(copy) -1] = '\0';
+ 
     if (strtok(NULL, " ") != NULL) {
         fprintf(stderr, "Line: %d. Label name cannot have spaces\n", line_num);
         exit(2);
@@ -383,8 +418,9 @@ int make_label(char* instruction, label_t* labels, int machine_index, int line_n
             exit(2);
         } else if (labels[i].name == NULL) {
             // put it in the labels
-            labels[i].name = instruction;
+            labels[i].name = copy;
             labels[i].location = machine_index;
+            labels[i].ptr = pointer;
             return 1;
         }
     }
@@ -404,6 +440,7 @@ int get_offset(char* label_name, label_t* labels, int machine_index, int line_nu
             break;
         }
     }
+    // machine index should never be negative one. label not real
     if (label_location == -1) {
         fprintf(stderr, "Line: %d. Label does not exist", line_num);
         exit(2);
@@ -411,4 +448,30 @@ int get_offset(char* label_name, label_t* labels, int machine_index, int line_nu
     
     offset = (label_location - (machine_index + 1));
     return offset;
+}
+
+// returns 1 if it's a valid label, 0 otherwise
+int is_label(char* label_name, int line_num) {
+    char* copy = malloc(MAX_LABEL_LENGTH);
+    char* pointer = copy;
+    strcpy(copy, label_name);
+    // strtok deals with whitespace
+    copy = strtok(copy, " ");
+    // whitespace
+    if (copy == NULL) {
+        free(pointer);
+        return 0;
+    }
+    if (copy[strlen(copy) -1] != ':') {
+        // not a label
+        free(pointer);
+        return 0;
+    }
+    if (copy[0] == '#') {
+        // it's a comment. Not a label
+        free(pointer);
+        return 0;
+    }
+    free(pointer);
+    return 1;
 }
