@@ -12,7 +12,7 @@
 // however, it's bad practice to do that anyway
 // The program can only handle base 10 numbers
 
-// TODO: emit functions
+// TODO: br emit, free strings in labels, handle comments after an instruction
 #define MAX_LABELS 200
 #define MAX_LABEL_LENGTH 200
 
@@ -25,12 +25,12 @@ typedef struct label {
 
 // helper function declarations
 int check_trap (char* line, FILE* output_file, int line_num, int write);
-int handle_instruction(char* line, FILE* output_file, int line_num, int write);
+int handle_instruction(char* line, FILE* fp, int l_num, label_t* labels, int m_indx);
 int handle_value(char* value, int bits, int line_num);
 int handle_register(char* reg, int line_num);
 int make_label(char* instruction, label_t* lables, int machine_index, int line_num);
-int get_offset(char* label_name, label_t* labels, int machine_index, int line_num);
 int is_label(char* label_name, int line_num);
+int get_offset(char* name, label_t* labels, int m_index, int l_num, int bits);
 
 
 void usage() {
@@ -103,7 +103,7 @@ int main(int argc, char** argv) {
                     printf("Line: %d. Handling instruction\n", line_num);
                     printf("Calling handle instruction with: %s\n", line);
                     // increment machine index, if needed
-                    machine_index += handle_instruction(line, output_file, line_num, i);
+                    machine_index += handle_instruction(line, output_file, line_num, labels, machine_index);
                     printf("Pass 2. Machine index: %d\n", machine_index);
 
                 }
@@ -117,7 +117,7 @@ int main(int argc, char** argv) {
         // fseek to beginning
         fseek(input_file, 0, SEEK_SET);
     }
-    // TODO free all the malloced strings inside labels
+    // TODO free all the malloced strings inside labels (for loop)
     free(labels);
     fclose(input_file);
     fclose(output_file);
@@ -179,7 +179,7 @@ int check_trap(char* line, FILE* output_file, int line_num, int write) {
 }
 
 // return 1 if increment instruction, 0 otherwise
-int handle_instruction(char* line, FILE* output_file, int line_num, int write) {
+int handle_instruction(char* line, FILE* fp, int l_num, label_t* labels, int m_indx) {
     // Remember: next time you use strtok, call the string with NUll but keep the comma
     char * cur = strtok(line, " ");
     int dst, src1, src2, imm, on, z, p, n, base, offset, trap, val;
@@ -196,72 +196,74 @@ int handle_instruction(char* line, FILE* output_file, int line_num, int write) {
         return 0;
     } else if (strcmp(cur, "add") == 0) {
         printf("%s\n", line);
-        dst = handle_register(strtok(NULL, " "), line_num);
-        src1 = handle_register(strtok(NULL, " "), line_num);
+        dst = handle_register(strtok(NULL, " "), l_num);
+        src1 = handle_register(strtok(NULL, " "), l_num);
         cur = strtok(NULL, " ");
         if (cur == NULL) {
-            fprintf(stderr, "Line: %d. Bad argument input. NULL. \n", line_num);
+            fprintf(stderr, "Line: %d. Bad argument input. NULL. \n", l_num);
             exit(2);
         }
         // add with 2 registers
         printf("Checking which add to emit\n");
         if (cur[0] == '%') {
-            src2 = handle_register(cur, line_num);
+            src2 = handle_register(cur, l_num);
             encoding = htons(emit_add_reg(dst, src1, src2));
         } else {
-            imm = handle_value(cur, 5, line_num);
+            imm = handle_value(cur, 5, l_num);
             encoding = htons(emit_add_imm(dst, src1, imm));
         } 
 
     } else if (strcmp(cur, "and") == 0) {
-        dst = handle_register(strtok(NULL, " "), line_num);
-        src1 = handle_register(strtok(NULL, " "), line_num);
+        dst = handle_register(strtok(NULL, " "), l_num);
+        src1 = handle_register(strtok(NULL, " "), l_num);
         cur = strtok(NULL, " ");
         if (cur == NULL) {
-            fprintf(stderr, "Line: %d. Bad argument input. NULL. \n", line_num);
+            fprintf(stderr, "Line: %d. Bad argument input. NULL. \n", l_num);
             exit(2);
         }
         // and with 2 registers
         if (cur[0] == '%') {
-            src2 = handle_register(cur, line_num);
+            src2 = handle_register(cur, l_num);
             encoding = htons(emit_and_reg(dst, src1, src2));
         } else {
             // and with immediate value
-            imm = handle_value(cur, 5, line_num);
+            imm = handle_value(cur, 5, l_num);
             encoding = htons(emit_and_imm(dst, src1, imm));
         }
     } else if (strcmp(cur, "not") == 0) {
-        dst = handle_register(strtok(NULL, " "), line_num);
-        src1 = handle_register(strtok(NULL, " "), line_num);
+        dst = handle_register(strtok(NULL, " "), l_num);
+        src1 = handle_register(strtok(NULL, " "), l_num);
         encoding = htons(emit_not(dst, src1));
     } else if (strcmp(cur, "br") == 0) {
         // TODO DO AFTER LABELS
 
     } else if (strcmp(cur, "jmp") == 0) {
-        base = handle_register(strtok(NULL, " "), line_num);
+        base = handle_register(strtok(NULL, " "), l_num);
         encoding = htons(emit_jmp(base));
-
     } else if (strcmp(cur, "jsr") == 0) {
-        // TODO after labels
+        offset = get_offset(strtok(NULL, " "), labels, m_indx, l_num, 11);
+        encoding = htons(emit_jsr(offset));
 
     } else if (strcmp(cur, "jsrr") == 0) {
-        base = handle_register(strtok(NULL, " "), line_num);
+        base = handle_register(strtok(NULL, " "), l_num);
         encoding = htons(emit_jsrr(base));
     } else if (strcmp(cur, "ld") == 0) {
-        dst = handle_register(strtok(NULL, " "), line_num);
-        offset = handle_value(strtok(NULL, " "), 9, line_num);
+        dst = handle_register(strtok(NULL, " "), l_num);
+        offset = handle_value(strtok(NULL, " "), 9, l_num);
         encoding = htons(emit_ld(dst, offset));
     } else if (strcmp(cur, "ldi") == 0) {
-        // TODO after labels
-
+        dst = handle_register(strtok(NULL, " "), l_num);
+        offset = get_offset(strtok(NULL, " "), labels, m_indx, l_num, 9);
+        encoding = htons(emit_ldi(dst, offset));
     } else if (strcmp(cur, "ldr") == 0) {
-        dst = handle_register(strtok(NULL, " "), line_num);
-        src1 = handle_register(strtok(NULL, " "), line_num);
-        offset = handle_value(strtok(NULL, " "), 6, line_num);
+        dst = handle_register(strtok(NULL, " "), l_num);
+        src1 = handle_register(strtok(NULL, " "), l_num);
+        offset = handle_value(strtok(NULL, " "), 6, l_num);
         encoding = htons(emit_ldr(dst, src1, offset));
     } else if (strcmp(cur, "lea") == 0) {
-        // TODO after labels
-
+        dst = handle_register(strtok(NULL, " "), l_num);
+        offset = get_offset(strtok(NULL, " "), labels, m_indx, l_num, 9);
+        encoding = htons(emit_lea(dst, offset));
     } else if (strcmp(cur, "ret") == 0) {
         fprintf(stderr, "Instruction ret is not used in X16\n");
         exit(2);
@@ -269,41 +271,45 @@ int handle_instruction(char* line, FILE* output_file, int line_num, int write) {
         fprintf(stderr, "Instruction rti is not used in X16\n");
         exit(2);
     } else if (strcmp(cur, "st") == 0) {
-        // TODO after labels
-
+        // TODO test
+        // take a memeory address (allegedly)
+        src1 = handle_register(strtok(NULL, " "), l_num);
+        offset = get_offset(strtok(NULL, " "), labels, m_indx, l_num, 9);
+        encoding = htons(emit_st(src1, offset));
     } else if (strcmp(cur, "sti") == 0) {
-        // TODO after labels
-
+        // TODO test
+        // memory address (allegedly)
+        src1 = handle_register(strtok(NULL, " "), l_num);
+        offset = get_offset(strtok(NULL, " "), labels, m_indx, l_num, 9);
+        encoding = htons(emit_sti(src1, offset));
     } else if (strcmp(cur, "str") == 0) {
-        src1 = handle_register(strtok(NULL, " "), line_num);
-        base = handle_register(strtok(NULL, " "), line_num);
-        offset = handle_value(strtok(NULL, " "), 6, line_num);
+        src1 = handle_register(strtok(NULL, " "), l_num);
+        base = handle_register(strtok(NULL, " "), l_num);
+        offset = handle_value(strtok(NULL, " "), 6, l_num);
         encoding = htons(emit_str(src1, base, offset));
     } else if (strcmp(cur, "trap") == 0) {
-        trap = handle_value(strtok(NULL, " "), 8, line_num);
+        trap = handle_value(strtok(NULL, " "), 8, l_num);
         if (trap != TRAP_GETC && trap != TRAP_OUT && trap != TRAP_PUTS &&
                 trap != TRAP_IN && trap != TRAP_PUTSP && trap != TRAP_HALT) {
-            fprintf(stderr, "Line: %d. Not a valid trap value\n", line_num);
+            fprintf(stderr, "Line: %d. Not a valid trap value\n", l_num);
         }
         encoding = htons(emit_trap(trap));
     } else if (strcmp(cur, "val") == 0) {
         // NOTE: val works but xod doesn't understand it and reads it as branch.
         // this is normal, as per the handout
-        val = handle_value(strtok(NULL, " "), 16, line_num);
+        val = handle_value(strtok(NULL, " "), 16, l_num);
         encoding = htons(emit_value(val));
 
     } else {
-        fprintf(stderr, "Line: %d. Unknown instruction:%s \n", line_num, cur);
+        fprintf(stderr, "Line: %d. Unknown instruction:%s \n", l_num, cur);
         exit(2);
     }
     printf("writing to output\n");
     // write to output
     // check if writing
-    if (write == 1) {
-        if (fwrite(&encoding, sizeof(encoding), 1, output_file) != 1) {
-            fprintf(stderr, "Line: %d. Problem writing to output file\n", line_num);
-            exit(2);
-        }
+    if (fwrite(&encoding, sizeof(encoding), 1, fp) != 1) {
+        fprintf(stderr, "Line: %d. Problem writing to output file\n", l_num);
+        exit(2);
     }
 
     // TODO Figure out if do anything else
@@ -400,6 +406,7 @@ int make_label(char* instruction, label_t* labels, int machine_index, int line_n
 
     if (copy[0] == '#') {
         // it's a comment. Not a label
+        free(pointer);
         return 0;
     }
     // gets rid of the ':"
@@ -430,23 +437,28 @@ int make_label(char* instruction, label_t* labels, int machine_index, int line_n
 
 // Precondition: label_name does not contain whitespace or comments
 // returns the offset needed to jump to label
-int get_offset(char* label_name, label_t* labels, int machine_index, int line_num) {
+int get_offset(char* name, label_t* labels, int m_index, int l_num, int bits) {
     int label_location = -1;
-    int offset;
-    
+    int offset; 
     for (int i = 0; i <= MAX_LABELS; i++) {
-        if (strcmp(labels[i].name, label_name) == 0) {
+        if (strcmp(labels[i].name, name) == 0) {
             label_location = labels[i].location;
             break;
         }
     }
     // machine index should never be negative one. label not real
     if (label_location == -1) {
-        fprintf(stderr, "Line: %d. Label does not exist", line_num);
+        fprintf(stderr, "Line: %d. Label does not exist", l_num);
         exit(2);
     }
-    
-    offset = (label_location - (machine_index + 1));
+    offset = (label_location - (m_index + 1));
+    // TODO check side
+    int max_size = 1 << (bits - 1);
+    if (offset >= max_size || offset < (max_size * -1)) {
+        fprintf(stderr, "Line: %d. Value too big or too small\n", l_num);
+        exit(2);
+    }
+
     return offset;
 }
 
