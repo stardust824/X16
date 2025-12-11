@@ -118,6 +118,14 @@ int main(int argc, char** argv) {
         fseek(input_file, 0, SEEK_SET);
     }
     // TODO free all the malloced strings inside labels (for loop)
+    for (int i = 0; i < MAX_LABELS; i++) {
+        if (labels[i].ptr != NULL) {
+            free(labels[i].ptr);
+        } else {
+            // don't want to free things we didn't malloc
+            break;
+        }
+    }
     free(labels);
     fclose(input_file);
     fclose(output_file);
@@ -235,15 +243,35 @@ int handle_instruction(char* line, FILE* fp, int l_num, label_t* labels, int m_i
         src1 = handle_register(strtok(NULL, " "), l_num);
         encoding = htons(emit_not(dst, src1));
     } else if (strcmp(cur, "br") == 0) {
-        // TODO DO AFTER LABELS
-
-    } else if (strcmp(cur, "jmp") == 0) {
+        offset = get_offset(strtok(NULL, " "), labels, m_indx, l_num, 9);
+        encoding = htons(emit_br(0, 0, 0, offset));
+    } else if (strcmp(cur, "brn") == 0) {
+        offset = get_offset(strtok(NULL, " "), labels, m_indx, l_num, 9);
+        encoding = htons(emit_br(1, 0, 0, offset));
+    } else if (strcmp(cur, "brp") == 0) {
+        offset = get_offset(strtok(NULL, " "), labels, m_indx, l_num, 9);
+        encoding = htons(emit_br(0, 0, 1, offset));
+    } else if (strcmp(cur, "brz") == 0) {
+        offset = get_offset(strtok(NULL, " "), labels, m_indx, l_num, 9);
+        encoding = htons(emit_br(0, 1, 0, offset));
+    }  else if (strcmp(cur, "brnzp") == 0) {
+        offset = get_offset(strtok(NULL, " "), labels, m_indx, l_num, 9);
+        encoding = htons(emit_br(1, 1, 1, offset));
+    } else if (strcmp(cur, "brnz") == 0) {
+        offset = get_offset(strtok(NULL, " "), labels, m_indx, l_num, 9);
+        encoding = htons(emit_br(1, 1, 0, offset));
+    } else if (strcmp(cur, "brnp") == 0) {
+        offset = get_offset(strtok(NULL, " "), labels, m_indx, l_num, 9);
+        encoding = htons(emit_br(1, 0, 1, offset));
+    } else if (strcmp(cur, "brzp") == 0) {
+        offset = get_offset(strtok(NULL, " "), labels, m_indx, l_num, 9);
+        encoding = htons(emit_br(0, 1, 1, offset));
+    }  else if (strcmp(cur, "jmp") == 0) {
         base = handle_register(strtok(NULL, " "), l_num);
         encoding = htons(emit_jmp(base));
     } else if (strcmp(cur, "jsr") == 0) {
         offset = get_offset(strtok(NULL, " "), labels, m_indx, l_num, 11);
         encoding = htons(emit_jsr(offset));
-
     } else if (strcmp(cur, "jsrr") == 0) {
         base = handle_register(strtok(NULL, " "), l_num);
         encoding = htons(emit_jsrr(base));
