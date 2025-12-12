@@ -313,9 +313,11 @@ int handle_instruction(char* line, FILE* fp, int l_num, label_t* labels, int m_i
         fprintf(stderr, "Line: %d. Problem writing to output file\n", l_num);
         exit(2);
     }
-
-    // TODO Figure out if do anything else
-    // TODO CHECK IF THERE ARE MORE THINGS ON THE LINE. IF COMMENT, OKAY. OTHERIWSE, ERROR
+    cur = strtok(NULL, " ");
+    // checks if there are more things and if those things are comments
+    if (cur != NULL && cur[0] != '#') {
+        fprintf(stderr, "Line %d. Too many arguments\n", l_num);
+    }
     return 1;
 }
 

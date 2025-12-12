@@ -1,8 +1,8 @@
 #include <assert.h>
 #include <stdbool.h>
 #include <stdlib.h>
-#include "bits.h"
 #include <stdio.h>
+#include "bits.h"
 
 
 
@@ -39,7 +39,7 @@ uint16_t setbit(uint16_t number, int n) {
 uint16_t clearbit(uint16_t number, int n) {
     uint16_t mask = 1;
     // if the bit is 1
-    if(getbit(number, n) == 1) {
+    if (getbit(number, n) == 1) {
        mask = (mask << n);
        return (mask ^ number);
     }

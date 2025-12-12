@@ -48,7 +48,7 @@ int execute_instruction(x16_t* machine) {
             // get value in register
             op1 = x16_reg(machine, src1);
             dst = getbits(instruction, 9, 3);
-            // checking how arg2 works and if it needs to be 
+            // checking how arg2 works and if it needs to be
             // sign extended
             if (getbit(instruction, 5) == 0) {
                 src2 = getbits(instruction, 0, 3);
@@ -98,9 +98,10 @@ int execute_instruction(x16_t* machine) {
             p = getbit(instruction, 9);
             // get bits in conditional register
             cond = x16_cond(machine);
-            // check if the flags and the bits are the same and if all bits are 0
-            if (((n && (cond == FL_NEG)) || (z && (cond == FL_ZRO)) || (p && (cond == FL_POS)))  ||
-                    (z == 0 && p == 0 && n == 0)) {
+            // check if the flags and the bits 
+            // are the same and if all bits are 0
+            if (((n && (cond == FL_NEG)) || (z && (cond == FL_ZRO)) ||
+                        (p && (cond == FL_POS)))  || (z == 0 && p == 0 && n == 0)) {
                 // gets the offset and sign extends it
                 offset = sign_extend(getbits(instruction, 0, 9), 9);
                 // gets the pc
@@ -109,7 +110,7 @@ int execute_instruction(x16_t* machine) {
                 // set pc to pc + offset
                 x16_set(machine, R_PC, result);
             }
-            // don't need to updat R_COND 
+            // don't need to updat R_COND
             break;
 
         case OP_JMP:
@@ -149,7 +150,7 @@ int execute_instruction(x16_t* machine) {
             result = x16_memread(machine, (op2 + offset));
             // set destination to the value
             x16_set(machine, dst, result);
-            update_cond(machine, dst); 
+            update_cond(machine, dst);
             break;
 
         case OP_LDI:
