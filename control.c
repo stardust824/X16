@@ -98,10 +98,10 @@ int execute_instruction(x16_t* machine) {
             p = getbit(instruction, 9);
             // get bits in conditional register
             cond = x16_cond(machine);
-            // check if the flags and the bits 
+            // check if the flags and the bits
             // are the same and if all bits are 0
             if (((n && (cond == FL_NEG)) || (z && (cond == FL_ZRO)) ||
-                        (p && (cond == FL_POS)))  || (z == 0 && p == 0 && n == 0)) {
+                (p && (cond == FL_POS)))  || (z == 0 && p == 0 && n == 0)) {
                 // gets the offset and sign extends it
                 offset = sign_extend(getbits(instruction, 0, 9), 9);
                 // gets the pc
