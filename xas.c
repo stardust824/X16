@@ -1,11 +1,11 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <limits.h>
 #include <stdint.h>
 #include <string.h>
 #include <arpa/inet.h>
 #include <assert.h>
 #include "instruction.h"
-#include <limits.h>
 
 // NOTE: This program cannot handle comments that occur 
 // directly after instructions with no spaces
@@ -44,7 +44,6 @@ int main(int argc, char** argv) {
         usage();
     }
 
-    // TODO: Your code here
     // Open file for reading
     FILE* input_file = fopen(argv[1], "r");
     FILE* output_file = fopen("a.obj", "wb");
@@ -79,45 +78,36 @@ int main(int argc, char** argv) {
         while (fgets(line, 1000, input_file) != NULL) {
             // get rid of newline
             line[strlen(line) -1] = '\0';
-            printf("Line is: %s\n", line);
             // FIRST PASS
             if (i == 0) {
-                printf("First pass. Calling make label\n");
                 label = make_label(line, labels, machine_index, line_num);
+                char* cur = strtok(line, " ");
                 // ":" Do NOT increment machine index
                 // All whitespace =  do NOT increment machine index
                 // Only a comment = do NOT increment machine index
-                char* cur = strtok(line, " ");
-                printf("Grabbed string. Checking if increment machine index\n"); 
                 if (cur != NULL && cur[0] != '#' && label != 1) {
                     // it's a trap or instruction
                     machine_index++;
                 }
-                printf("Pass 1. Machine index: %d\n", machine_index);
                 // SECOND PASS
                 // check if trap
             } else if (check_trap(line, output_file, line_num, i) == 0) {
-                printf("Not a trap\n");
                 // if not a label
                 if (is_label(line, line_num) != 1) {
-                    printf("Line: %d. Handling instruction\n", line_num);
-                    printf("Calling handle instruction with: %s\n", line);
                     // increment machine index, if needed
                     machine_index += handle_instruction(line, output_file, line_num, labels, machine_index);
-                    printf("Pass 2. Machine index: %d\n", machine_index);
 
                 }
             } else {
                 // it's a trap
                 machine_index++;
-                printf("Pass 2. Machine index: %d\n", machine_index);
             }
             line_num ++;
         }
         // fseek to beginning
         fseek(input_file, 0, SEEK_SET);
     }
-    // TODO free all the malloced strings inside labels (for loop)
+    // free all the malloced strings in labels
     for (int i = 0; i < MAX_LABELS; i++) {
         if (labels[i].ptr != NULL) {
             free(labels[i].ptr);
@@ -135,8 +125,6 @@ int main(int argc, char** argv) {
 // checks if there are traps and handles them.
 // Returns 0 if there are no traps, 1 otherwise
 int check_trap(char* line, FILE* output_file, int line_num, int write) {
-    printf("in check trap\n");
-    printf("Line is %s\n", line);
     // fwrite emit file
     int instruction;
     short encoded;
@@ -149,15 +137,6 @@ int check_trap(char* line, FILE* output_file, int line_num, int write) {
         // whitespace
         return 0;
     }
-    printf("Lineis %s\n", line);
-    // handles spaces
-    //for (int i = 0; i < length; i++) {
-        //if (line[0] == ' ') {
-            //line++;
-        //} else {
-            //break;
-        //}
-    //}
     if (strcmp(line, "putc") == 0) {
         instruction = TRAP_OUT;
     } else if(strcmp(line, "getc") == 0) {
@@ -192,7 +171,6 @@ int handle_instruction(char* line, FILE* fp, int l_num, label_t* labels, int m_i
     char * cur = strtok(line, " ");
     int dst, src1, src2, imm, on, z, p, n, base, offset, trap, val;
     short encoding;
-    printf("In handle instruction\n");
     // check if pure whitespace
     if (cur == NULL) {
         // is just whitespace
@@ -200,10 +178,8 @@ int handle_instruction(char* line, FILE* fp, int l_num, label_t* labels, int m_i
     }
     // check if comment
     if (cur[0] == '#') {
-        printf("Comment\n");
         return 0;
     } else if (strcmp(cur, "add") == 0) {
-        printf("%s\n", line);
         dst = handle_register(strtok(NULL, " "), l_num);
         src1 = handle_register(strtok(NULL, " "), l_num);
         cur = strtok(NULL, " ");
@@ -212,7 +188,6 @@ int handle_instruction(char* line, FILE* fp, int l_num, label_t* labels, int m_i
             exit(2);
         }
         // add with 2 registers
-        printf("Checking which add to emit\n");
         if (cur[0] == '%') {
             src2 = handle_register(cur, l_num);
             encoding = htons(emit_add_reg(dst, src1, src2));
@@ -332,7 +307,6 @@ int handle_instruction(char* line, FILE* fp, int l_num, label_t* labels, int m_i
         fprintf(stderr, "Line: %d. Unknown instruction:%s \n", l_num, cur);
         exit(2);
     }
-    printf("writing to output\n");
     // write to output
     // check if writing
     if (fwrite(&encoding, sizeof(encoding), 1, fp) != 1) {
@@ -347,8 +321,6 @@ int handle_instruction(char* line, FILE* fp, int l_num, label_t* labels, int m_i
 
 // returns register number, else exits
 int handle_register(char* reg, int line_num) {
-    printf("in handle register\n");
-    printf("%s\n", reg);
     if (reg == NULL) {
         fprintf(stderr, "Line: %d. Bad register input.\n", line_num);
         exit(2);
@@ -357,7 +329,6 @@ int handle_register(char* reg, int line_num) {
     if (reg[strlen(reg) -1] == ',') {
         reg[strlen(reg) -1] = '\0'; 
     }
-    printf("%s\n", reg);
     if (strcmp(reg, "%r0") == 0) {
         return R_R0;
     } else if (strcmp(reg, "%r1") == 0) {
