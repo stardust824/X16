@@ -468,8 +468,8 @@ int make_label(char* instruction, label_t* labels, int machine_index, int line_n
 int get_offset(char* name, label_t* labels, int m_index, int l_num, int bits) {
     int label_location = -1;
     int offset; 
-    for (int i = 0; i <= MAX_LABELS; i++) {
-        if (strcmp(labels[i].name, name) == 0) {
+    for (int i = 0; i < MAX_LABELS; i++) {
+        if (labels[i].name != NULL && strcmp(labels[i].name, name) == 0) {
             label_location = labels[i].location;
             break;
         }
