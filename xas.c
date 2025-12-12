@@ -24,8 +24,8 @@ typedef struct label {
 } label_t;
 
 // helper function declarations
-int check_trap(char* line, FILE* output_file, int line_num, int write);
-int handle_inst(char* line, FILE* fp, int l_num, label_t* labels, int m_indx);
+int check_trap(char* line, FILE* output_file, int l_num, int write);
+int inst(char* line, FILE* fp, int l_num, label_t* labels, int m_indx);
 int handle_value(char* value, int bits, int line_num);
 int handle_register(char* reg, int line_num);
 int make_label(char* inst, label_t* lables, int m_indx, int line_num);
@@ -67,8 +67,6 @@ int main(int argc, char** argv) {
     }
     // make list of labels
     label_t *labels = calloc(sizeof(label_t), MAX_LABELS);
- 
-    
     // while not end of file
     for (int i = 0; i < 2; i++) {
         m_indx = 0;
@@ -94,7 +92,7 @@ int main(int argc, char** argv) {
                 // if not a label
                 if (is_label(line, line_num) != 1) {
                     // increment machine index, if needed
-                    m_indx += handle_inst(line, output_file, line_num, labels, m_indx);
+                    m_indx += inst(line, output_file, line_num, labels, m_indx);
                 }
             } else {
                 // it's a trap
@@ -122,7 +120,7 @@ int main(int argc, char** argv) {
 
 // checks if there are traps and handles them.
 // Returns 0 if there are no traps, 1 otherwise
-int check_trap(char* line, FILE* output_file, int line_num, int write) {
+int check_trap(char* line, FILE* output_file, int l_num, int write) {
     // fwrite emit file
     int instruction;
     short encoded;
@@ -156,7 +154,7 @@ int check_trap(char* line, FILE* output_file, int line_num, int write) {
     // write to output file
     if (write == 1) {
         if (fwrite(&encoded, sizeof(encoded), 1, output_file) != 1) {
-            fprintf(stderr, "Line number: %d Problem writing trap.\n", line_num);
+            fprintf(stderr, "Line number: %d Er writing trap.\n", l_num);
             exit(2);
         }
     }
@@ -164,7 +162,7 @@ int check_trap(char* line, FILE* output_file, int line_num, int write) {
 }
 
 // return 1 if increment instruction, 0 otherwise
-int handle_inst(char* line, FILE* fp, int l_num, label_t* labels, int m_indx) {
+int inst(char* line, FILE* fp, int l_num, label_t* labels, int m_indx) {
     // Remember: next time you use strto
     char * cur = strtok(line, " ");
     int dst, src1, src2, imm, on, z, p, n, base, offset, trap, val;
@@ -325,7 +323,7 @@ int handle_register(char* reg, int line_num) {
     }
     // handle comma
     if (reg[strlen(reg) -1] == ',') {
-        reg[strlen(reg) -1] = '\0'; 
+        reg[strlen(reg) -1] = '\0';
     }
     if (strcmp(reg, "%r0") == 0) {
         return R_R0;
@@ -357,12 +355,12 @@ int handle_value(char* value, int bits, int line_num) {
         fprintf(stderr, "Line: %d. Bad value input.\n", line_num);
         exit(2);
     } else if (value[0] != '$') {
-           fprintf(stderr, "Line: %d. Values problem. Check $\n", line_num); 
+           fprintf(stderr, "Line: %d. Values problem. Check $\n", line_num);
            exit(2);
     }
     // handle comma
     if (value[strlen(value) -1] == ',') {
-        value[strlen(value) -1] = '\0'; 
+        value[strlen(value) -1] = '\0';
     }
     char* endptr;
     long number;
