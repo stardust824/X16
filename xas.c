@@ -277,7 +277,7 @@ int handle_instruction(char* line, FILE* fp, int l_num, label_t* labels, int m_i
         encoding = htons(emit_jsrr(base));
     } else if (strcmp(cur, "ld") == 0) {
         dst = handle_register(strtok(NULL, " "), l_num);
-        offset = handle_value(strtok(NULL, " "), 9, l_num);
+        offset = get_offset(strtok(NULL, " "), labels, m_indx, l_num, 9);
         encoding = htons(emit_ld(dst, offset));
     } else if (strcmp(cur, "ldi") == 0) {
         dst = handle_register(strtok(NULL, " "), l_num);
