@@ -9,11 +9,11 @@ get_nums:
     # compare it to newline
     ld %r7, zero
     add %r7, %r7, %r0
-    add %r7, %r7, newline
+    add %r7, %r7, $10 # compare to newline
     brz end_nums # jump if EOT
     add %r1, %r1, %r0 # put num into r1
     ld %r2, forty_eight
-    add %r1, %r1, $-48 # deals with ascii
+    add %r1, %r1, $r2 # deals with ascii
     putc #print number to screen
     # r5 is where we are storing num_stars
     ld %r2, zero
@@ -26,9 +26,9 @@ get_nums:
     br get_nums # loop
 end_nums:
     # print a newline
-    ld $r0, newline
+    ld %r0, newline
     putc
-    ld $r0, 91 # square bracket
+    ld %r0, bracket_1
     putc
 print_stars:
     # compare to 0
@@ -38,9 +38,9 @@ print_stars:
     putc
     br print_stars
 end:
-    ld $r0, 93
+    ld %r0, bracket_2
     putc # square brackets
-    ld $r0, newline
+    ld %r0, newline
     putc # print newline
     halt
 forty_eight:
@@ -51,3 +51,7 @@ star:
     val $42
 newline: 
     val $10
+bracket_1:
+    val $91
+bracket_2:
+    val $93

@@ -298,7 +298,7 @@ int inst(char* line, FILE* fp, int l_num, label_t* labels, int m_indx) {
         val = handle_value(strtok(NULL, " "), 16, l_num);
         encoding = htons(emit_value(val));
     } else {
-        fprintf(stderr, "Line: %d. Unknown instruction:%s \n", l_num, cur);
+        fprintf(stderr, "Line: %d. Unknown instruction:%s\n", l_num, cur);
         exit(2);
     }
     // write to output
@@ -342,7 +342,7 @@ int handle_register(char* reg, int line_num) {
     } else if (strcmp(reg, "%r7") == 0) {
         return R_R7;
     } else {
-        fprintf(stderr, "Line: %d. Regitster error. Check %%\n", line_num);
+        fprintf(stderr, "Line: %d. Register error. Check %%\n", line_num);
         exit(2);
     }
 }
@@ -441,7 +441,7 @@ int get_offset(char* name, label_t* labels, int m_index, int l_num, int bits) {
     }
     // machine index should never be negative one. label not real
     if (label_location == -1) {
-        fprintf(stderr, "Line: %d. Label does not exist", l_num);
+        fprintf(stderr, "Line: %d. Label does not exist\n", l_num);
         exit(2);
     }
     offset = (label_location - (m_index + 1));
