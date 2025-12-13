@@ -1,19 +1,22 @@
 # Enter your code here for giza.x16s
 
+ld %r5, zero
 get_nums: 
     getc # put the number in r0
     # compare it to EOF
+    ld %r7, zero
     add %r7, %r7, %r0 # put number in r7
     add %r7, %r7, $-4 # compare to end of transmission
     brz end_nums
     # compare it to newline
     ld %r7, zero
     add %r7, %r7, %r0
-    add %r7, %r7, $10 # compare to newline
+    add %r7, %r7, $-10 # compare to newline
     brz end_nums # jump if EOT
+    ld %r1, zero
     add %r1, %r1, %r0 # put num into r1
     ld %r2, forty_eight
-    add %r1, %r1, $r2 # deals with ascii
+    add %r1, %r1, %r2 # deals with ascii
     putc #print number to screen
     # r5 is where we are storing num_stars
     ld %r2, zero
@@ -33,7 +36,7 @@ end_nums:
 print_stars:
     # compare to 0
     add %r5, %r5, $-1 # decrement 1
-    brz end
+    brn end
     ld %r0, star
     putc
     br print_stars
