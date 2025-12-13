@@ -1,1 +1,53 @@
 # Enter your code here for giza.x16s
+
+get_nums: 
+    getc # put the number in r0
+    # compare it to EOF
+    add %r7, %r7, %r0 # put number in r7
+    add %r7, %r7, $-4 # compare to end of transmission
+    brz end_nums
+    # compare it to newline
+    ld %r7, zero
+    add %r7, %r7, %r0
+    add %r7, %r7, newline
+    brz end_nums # jump if EOT
+    add %r1, %r1, %r0 # put num into r1
+    ld %r2, forty_eight
+    add %r1, %r1, $-48 # deals with ascii
+    putc #print number to screen
+    # r5 is where we are storing num_stars
+    ld %r2, zero
+    add %r2, %r5, %r5 # double it
+    add %r3, %r2, %r2 # quadruple it
+    add %r4, %r3, %r3 # * 8
+    add %r4, %r4, %r2 # this will be * 10
+    #add num to num_stars
+    add %r5, %r4, %r1
+    br get_nums # loop
+end_nums:
+    # print a newline
+    ld $r0, newline
+    putc
+    ld $r0, 91 # square bracket
+    putc
+print_stars:
+    # compare to 0
+    add %r5, %r5, $-1 # decrement 1
+    brz end
+    ld %r0, star
+    putc
+    br print_stars
+end:
+    ld $r0, 93
+    putc # square brackets
+    ld $r0, newline
+    putc # print newline
+    halt
+forty_eight:
+    val $-48
+zero: 
+    val $0
+star:
+    val $42
+newline: 
+    val $10
