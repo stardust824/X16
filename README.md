@@ -1,14 +1,3 @@
-[![Review Assignment Due Date](https://classroom.github.com/assets/deadline-readme-button-22041afd0340ce965d47ae6ef1cefeee28c7c493a6346c4f15d667ab976d596c.svg)](https://classroom.github.com/a/14ooK9Dp)
-# X16
-
-## Tracing
-
-You can obtain a trace of execution by running 
-```
-./x16 -l objectfile
-```
-
-This generates a `log.txt` that contains the PC and instruction sequence that the emulator
-executes.
-
-Partial traces of `2048.obj` and `rogue.obj` from a working emulator are in the `trace` directory.
+This is an X16 emulator and assembler that I wrote in C. It can run X16 games and you can write programs in X16 assembly. The emulator takes in a 16 bit number and executes a command such as add, and, branch, etc. based on sets of bits in the number. The assembler parses an input file written in X16 assembly and transforms it into X16 machine code. It then writes the machine code to an output file that the emulator reads. I used a two pass system to resolve labels and jumps. Additionally, the assembler can handle errors and returns useful error messages to allow users to find compilation errors/bugs in their code. 
+X16 is a 16 bit architecture that was created for simple programs.
+Note: This code was written as part of a school project, so I was given some skeleton code and helper functions; however, a majority of the code was written by me. 
